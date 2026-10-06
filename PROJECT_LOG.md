@@ -1047,8 +1047,13 @@ D:\졸업프로젝트
 
 ### 남은 일
 
-- 이 PC에는 GitHub CLI가 설치되어 있지 않다.
-- 현재 자동화 세션에는 브라우저 제어 런타임이 없어 GitHub 웹 저장소를 대신 생성하지 못했다.
-- GitHub에서 빈 저장소를 만든 뒤 저장소 URL을 `origin`으로 연결해야 한다.
-- 원격 저장소 연결 후 `main` 브랜치를 푸시한다.
+- 이 PC에는 GitHub CLI가 설치되어 있지 않아 GitHub 웹에서 빈 저장소는 사용자가 직접 생성했다.
+
+### 업로드 완료
+
+- GitHub 저장소: <https://github.com/dongchan21/seoul-bike-dashboard>
+- 원격 이름: `origin`
+- 업로드 브랜치: `main`
+- 로컬 `main`이 `origin/main`을 추적하도록 설정했다.
+- 최초 원격 푸시가 정상적으로 완료됐다.
 
