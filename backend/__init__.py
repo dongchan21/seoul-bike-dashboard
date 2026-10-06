@@ -1,0 +1,1 @@
+"""Seoul bike inventory collection."""

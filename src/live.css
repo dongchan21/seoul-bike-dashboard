@@ -1,0 +1,15 @@
+.demo-badge.live{color:#78f4d5;border-color:#33cca966;background:#21b98b18}
+.stock-flow.single{justify-content:center}
+.stock-flow.single strong{font-size:38px}
+.empty.compact{padding:42px 20px;height:190px}
+.error-state{max-width:620px;margin:80px auto;padding:50px}
+.error-state h2{font-size:18px;color:#24374a}
+.inline-alert{display:flex;align-items:center;gap:7px;padding:10px 14px;margin-bottom:14px;border:1px solid #f0c36a;background:#fff9e9;color:#8b5a08;border-radius:6px;font-size:11px}
+.inline-alert svg{width:15px}
+.pagination{display:flex;justify-content:center;align-items:center;gap:12px;padding:12px;border-top:1px solid #e7ecef;font-size:11px;color:var(--muted)}
+.pagination button{border:1px solid #d5dee4;background:white;border-radius:5px;padding:6px 13px;color:#34485a}
+.pagination button:disabled{opacity:.4;cursor:not-allowed}
+.model-pending{padding:90px 35px}
+.model-pending p{max-width:380px;margin:0 auto;line-height:1.8}
+.marker>circle:first-child{transition:r .12s ease}
+@media(max-width:700px){.model-pending{padding:50px 20px}}
