@@ -471,3 +471,12 @@ reports/          품질·모델 비교·재배치 실험 결과
 - [scikit-learn Poisson 회귀 예제](https://scikit-learn.org/stable/auto_examples/linear_model/plot_poisson_regression_non_normal_loss.html): 건수 예측의 손실 함수 비교 참고.
 
 자료 확인일: 2026-10-06. 기술 선택·일정·운영 임계값은 본 프로젝트를 위한 구현 제안이다.
+# 실제 지도
+
+대시보드는 [Leaflet](https://leafletjs.com/)과 OpenStreetMap 타일을 사용해 FastAPI가 반환하는 대여소 위도·경도를 표시한다. 별도 지도 API 키나 결제수단 등록이 필요하지 않다.
+
+- 상태·대여소명 필터 결과만 지도에 표시한다.
+- 지도 또는 표에서 대여소를 선택하면 해당 위치와 재고 팝업, 우측 상세 패널이 함께 갱신된다.
+- 부족은 빨간색, 과잉은 파란색, 정상은 초록색으로 구분한다.
+- OpenStreetMap 저작자 표시는 지도 오른쪽 아래에 항상 표시한다.
+- 공개 타일은 개발·시연용으로 사용하며 대량 다운로드, 오프라인 저장 또는 타일 선가져오기를 하지 않는다.

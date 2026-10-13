@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, Bike, CheckCircle2, Clock3, Database, MapPin, RefreshCw, Search, SlidersHorizontal, WifiOff } from 'lucide-react'
 import { fetchInventory, fetchStationHistory, type InventoryPoint, type InventoryStatus, type LiveStation } from './api'
 import type { Status } from './types'
+import { LeafletStationMap } from './LeafletStationMap'
 
 const statusMeta: Record<Status, { label: string; icon: string }> = {
   shortage: { label: '재고 낮음', icon: '▼' }, normal: { label: '보통', icon: '●' }, surplus: { label: '재고 많음', icon: '▲' },
@@ -15,14 +16,6 @@ function distance(a: LiveStation, b: LiveStation) {
 }
 function StatCard({title,value,unit,sub,tone='',icon}:{title:string;value:string|number;unit?:string;sub:string;tone?:string;icon:React.ReactNode}) {
   return <article className={`stat-card ${tone}`}><div className="stat-head"><span>{title}</span><i>{icon}</i></div><div className="stat-value">{value}<small>{unit}</small></div><p>{sub}</p></article>
-}
-function SeoulMap({stations,selected,onSelect}:{stations:LiveStation[];selected:string;onSelect:(id:string)=>void}) {
-  const p=(s:LiveStation)=>({x:40+(s.longitude-126.76)/(127.20-126.76)*620,y:390-(s.latitude-37.42)/(37.71-37.42)*340})
-  return <div className="map-wrap"><svg viewBox="0 0 700 430" role="img" aria-label="서울 실시간 대여소 재고 지도">
-    <path className="seoul-shape" d="M60 197 L91 133 151 121 181 70 252 57 302 89 359 54 421 91 486 81 527 116 627 131 651 194 621 245 650 299 580 344 491 338 430 376 363 351 296 387 246 344 172 351 127 310 74 287 91 238Z"/>
-    <path className="river" d="M55 252 C135 206 189 285 267 245 S389 198 467 249 S582 280 657 232"/>
-    {stations.map(s=>{const pt=p(s),state=stationStatus(s),active=selected===s.stationId;return <g key={s.stationId} className={`marker ${state} ${active?'selected':''}`} transform={`translate(${pt.x} ${pt.y})`} onClick={()=>onSelect(s.stationId)} role="button" tabIndex={0} onKeyDown={e=>e.key==='Enter'&&onSelect(s.stationId)}><circle r={active?7:2.5}/>{active&&<circle className="pulse" r="12"/>}</g>})}
-  </svg><div className="map-legend"><span><i className="shortage"/>▼ 재고 낮음</span><span><i className="surplus"/>▲ 재고 많음</span><span><i className="normal"/>● 보통</span></div></div>
 }
 function HistoryChart({points,capacity}:{points:InventoryPoint[];capacity:number}) {
   if(points.length<2)return <div className="empty compact"><Clock3/><h3>재고 이력을 수집 중입니다</h3><p>두 번 이상 정상 수집되면 실제 추이가 표시됩니다.</p></div>
@@ -50,7 +43,7 @@ export default function LiveApp(){
       <div className="page-title"><div><p className="eyebrow">SEOUL BIKE INVENTORY</p><h1>실시간 대여소 재고 현황</h1><p>마지막으로 전체 수집에 성공한 서울시 API 데이터를 표시합니다.</p></div><div className="sync"><span className="live-dot"/> 마지막 성공 슬롯 <b>{kst(runStatus?.slot)}</b><small>예측 모델 연결 전</small></div></div>
       {error&&<div className="inline-alert"><AlertCircle/>{error} · 이전 정상 데이터를 표시합니다.</div>}
       <section className="stats-grid"><StatCard icon={<MapPin/>} title="전체 대여소" value={stations.length.toLocaleString()} unit="개소" sub="마지막 정상 수집 기준"/><StatCard icon={<Bike/>} title="대여 가능 자전거" value={totalBikes.toLocaleString()} unit="대" tone="teal" sub="전체 대여소 합계"/><StatCard icon={<AlertCircle/>} title="재고 0대" value={emptyCount.toLocaleString()} unit="개소" tone="danger" sub="현재 대여 불가"/><StatCard icon={<CheckCircle2/>} title="거치율 80% 이상" value={highCount.toLocaleString()} unit="개소" tone="blue" sub="현재 재고가 많은 곳"/></section>
-      <section className="top-grid"><article className="panel map-panel"><div className="panel-head"><div><h2>서울 대여소 현황</h2><p>실제 좌표와 현재 재고 수준을 표시합니다.</p></div><span className="count">표시 {stations.length.toLocaleString()}개</span></div><SeoulMap stations={stations} selected={selected} onSelect={setSelected}/></article>
+      <section className="top-grid"><article className="panel map-panel"><div className="panel-head"><div><h2>서울 대여소 현황</h2><p>실제 좌표와 현재 재고 수준을 표시합니다.</p></div><span className="count">표시 {filtered.length.toLocaleString()}개</span></div><LeafletStationMap stations={filtered} selected={selected} onSelect={setSelected}/></article>
         <article className="panel selected-card">{current?<><div className="panel-head"><div><p className="eyebrow">SELECTED STATION</p><h2>{current.stationName}</h2><p>{current.stationId}</p></div><span className={`status-pill ${stationStatus(current)}`}>{statusMeta[stationStatus(current)].icon} {statusMeta[stationStatus(current)].label}</span></div><div className="stock-flow single"><div><small>현재 대여 가능</small><strong>{current.currentBikes}<em>대</em></strong></div></div><div className="mini-grid"><div><Bike/><span>거치대 수<strong>{current.capacity}개</strong></span></div><div><Database/><span>원본 거치율<strong>{current.occupancyRate.toFixed(0)}%</strong></span></div></div><div className="recommend normal"><Clock3/><div><small>수집 수신 시각</small><strong>{kst(current.fetchedAt)}</strong></div></div><span className={`health ${runStatus?.dataQuality==='normal'?'ok':'delayed'}`}>{runStatus?.dataQuality==='normal'?<CheckCircle2/>:<Clock3/>}{runStatus?.dataQuality==='normal'?'정상 수집':'10분 이상 지연'}</span></>:<div className="empty"><Search/><h3>대여소를 선택해 주세요</h3></div>}</article>
       </section>
       <section className="panel table-panel"><div className="panel-head"><div><h2>실시간 대여소 목록</h2><p>현재 재고 기준 상태이며 수요 예측 결과가 아닙니다.</p></div><span className="count">{filtered.length.toLocaleString()}개 결과</span></div><div className="filters"><label className="search"><Search/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="대여소명 또는 ID 검색"/></label><select value={filter} onChange={e=>setFilter(e.target.value as typeof filter)}><option value="all">전체 상태</option><option value="shortage">▼ 재고 낮음</option><option value="surplus">▲ 재고 많음</option><option value="normal">● 보통</option></select><label className="sort"><SlidersHorizontal/><select value={sort} onChange={e=>setSort(e.target.value as typeof sort)}><option value="name">대여소명순</option><option value="bikes">재고 낮은순</option><option value="rate">거치율 낮은순</option></select></label></div>
