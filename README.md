@@ -480,3 +480,49 @@ reports/          품질·모델 비교·재배치 실험 결과
 - 부족은 빨간색, 과잉은 파란색, 정상은 초록색으로 구분한다.
 - OpenStreetMap 저작자 표시는 지도 오른쪽 아래에 항상 표시한다.
 - 공개 타일은 개발·시연용으로 사용하며 대량 다운로드, 오프라인 저장 또는 타일 선가져오기를 하지 않는다.
+
+## OA-21229 과거 대여·반납 파이프라인
+
+공식 OA-21229 파일을 내려받아 `SQLite → 5분 집계 → 대여소 마스터 결합 → 과거 평균 모델` 순서로 실행한다. 원본 ZIP은 `data/station_flow/raw/`, 결과는 기존 `data/inventory/inventory.sqlite3`에 저장된다. `data/`는 Git에서 제외된다.
+
+```powershell
+Set-Location 'D:\졸업프로젝트'
+
+# 1. 공식 파일 목록 또는 최신 일별 파일 확인
+.\.venv\Scripts\python.exe -m backend.download_station_flow --list
+.\.venv\Scripts\python.exe -m backend.download_station_flow --latest --dry-run
+
+# 2. 최신 원본 다운로드
+.\.venv\Scripts\python.exe -m backend.download_station_flow --latest
+
+# 3~4. 5분 집계, 마스터 결합, seasonal-mean-v1 학습
+.\.venv\Scripts\python.exe -m backend.run_history_pipeline
+
+# 결과 건수 확인
+.\.venv\Scripts\python.exe -m backend.run_history_pipeline --status
+```
+
+특정 월은 `--period 2026-09`, 특정 일자는 `--period 2026-10-08`로 받는다. 이미 검증된 파일은 다시 받거나 집계하지 않는다. 다시 만들 때만 다운로드에는 `--force`, 파이프라인에는 `--force`를 각각 지정한다.
+
+OA-21229 CSV는 `출발시간`과 `도착시간` 행이 별도로 존재한다. `flows_5m.rentals`는 출발시간 행의 시작 대여소, `returns`는 도착시간 행의 종료 대여소에서만 계산해 중복을 막는다. 각 대여소·일자마다 288개 구간을 생성하여 이용 건수가 없는 시각도 0으로 보존한다.
+
+주요 테이블:
+
+| 테이블/뷰 | 용도 |
+|---|---|
+| `flow_imports` | 원본 파일 해시, 처리 건수, 기간, 중복 실행 기록 |
+| `flows_5m` | 대여소 × 날짜 × 5분 시점의 대여·반납 건수 |
+| `station_master` | 실시간 재고에서 갱신한 이름·거치대·좌표와 과거 ID |
+| `station_flows_5m` | `flows_5m`과 `station_master`를 결합한 조회 뷰 |
+| `baseline_5m` | 대여소 × 요일 × 5분 시점의 과거 평균 |
+| `baseline_models` | 학습 기간·건수·모델 버전 메타데이터 |
+
+30분 예측 확인 예시:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.baseline `
+  --predict-station ST-101 `
+  --as-of 2026-10-08T08:00:00+09:00
+```
+
+현재 실제 실행은 2026-10-08 하루 데이터로 파이프라인이 연결되는지 검증한 단계다. 모델 비교에 사용할 기준선으로 만들려면 최소 여러 주, 권장 8~12주의 월별 파일을 추가로 적재해야 한다.

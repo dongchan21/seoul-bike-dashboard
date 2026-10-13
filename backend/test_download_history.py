@@ -27,22 +27,29 @@ class HistoryDownloadTests(unittest.TestCase):
             <td>1736953.98</td><td>2026.04.22</td><td>2026.04.22</td>
             <td><a href="javascript:downloadFile('96')">DOWN</a></td>
           </tr>
+          <tr>
+            <td>3</td><td>tpss_bcycl_od_statnhm_20261007.zip</td>
+            <td>5582.8</td><td>2026.10.12</td><td>2026.10.12</td>
+            <td><a href="javascript:downloadFile('261007')">DOWN</a></td>
+          </tr>
         </tbody></table>
         """
 
     def test_parse_catalog_and_periods(self):
         entries = parse_catalog(self.catalog_html)
-        self.assertEqual(2, len(entries))
+        self.assertEqual(3, len(entries))
         self.assertEqual("150", entries[0].seq)
         self.assertEqual("2026-06", entries[0].period)
         self.assertEqual("2025", entries[1].period)
         self.assertGreater(entries[0].expected_bytes, 700_000_000)
+        self.assertEqual("2026-10-07", entries[2].period)
 
     def test_select_by_year_month_and_latest(self):
         entries = parse_catalog(self.catalog_html)
         self.assertEqual([entries[0]], select_entries(entries, periods=["2026-06"]))
         self.assertEqual([entries[1]], select_entries(entries, periods=["2025"]))
-        self.assertEqual([entries[0]], select_entries(entries, latest=True))
+        self.assertEqual([entries[2]], select_entries(entries, latest=True))
+        self.assertEqual([entries[2]], select_entries(entries, periods=["2026-10-07"]))
 
     def test_invalid_period_fails(self):
         entries = parse_catalog(self.catalog_html)

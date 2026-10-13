@@ -52,6 +52,12 @@ class HistoryFile:
 
     @property
     def period(self) -> str | None:
+        daily = re.search(r"_(20\d{2})(\d{2})(\d{2})\.zip$", self.filename, re.IGNORECASE)
+        if daily:
+            return f"{daily.group(1)}-{daily.group(2)}-{daily.group(3)}"
+        monthly_zip = re.search(r"_(20\d{2})(\d{2})\.zip$", self.filename, re.IGNORECASE)
+        if monthly_zip:
+            return f"{monthly_zip.group(1)}-{monthly_zip.group(2)}"
         annual = re.search(r"_(20\d{2})\.zip$", self.filename, re.IGNORECASE)
         if annual:
             return annual.group(1)
@@ -99,9 +105,9 @@ def parse_catalog(html_text: str) -> list[HistoryFile]:
     return entries
 
 
-def fetch_catalog(timeout: int = 30) -> list[HistoryFile]:
+def fetch_catalog(timeout: int = 30, catalog_url: str = CATALOG_URL) -> list[HistoryFile]:
     request = Request(
-        CATALOG_URL,
+        catalog_url,
         headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml"},
     )
     with urlopen(request, timeout=timeout) as response:
@@ -111,12 +117,14 @@ def fetch_catalog(timeout: int = 30) -> list[HistoryFile]:
     return parse_catalog(payload.decode("utf-8-sig"))
 
 
-def _period_sort_key(entry: HistoryFile) -> tuple[int, int]:
+def _period_sort_key(entry: HistoryFile) -> tuple[int, int, int]:
+    if entry.period and len(entry.period) == 10:
+        return int(entry.period[:4]), int(entry.period[5:7]), int(entry.period[8:])
     if entry.period and len(entry.period) == 7:
-        return int(entry.period[:4]), int(entry.period[5:])
+        return int(entry.period[:4]), int(entry.period[5:]), 31
     if entry.period:
-        return int(entry.period), 12
-    return 0, 0
+        return int(entry.period), 12, 31
+    return 0, 0, 0
 
 
 def select_entries(
@@ -131,9 +139,12 @@ def select_entries(
     filename_values = list(filenames)
 
     for period in period_values:
-        if not re.fullmatch(r"20\d{2}(?:-(?:0[1-9]|1[0-2]))?", period):
+        if not re.fullmatch(
+            r"20\d{2}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?)?",
+            period,
+        ):
             raise HistoryDownloadError(
-                f"invalid period {period!r}; use YYYY or YYYY-MM"
+                f"invalid period {period!r}; use YYYY, YYYY-MM, or YYYY-MM-DD"
             )
         matches = [
             entry
@@ -217,14 +228,14 @@ def validate_file(path: Path, entry: HistoryFile) -> None:
             raise HistoryDownloadError(f"download does not look like CSV: {entry.filename}")
 
 
-def _load_manifest(path: Path) -> dict:
+def _load_manifest(path: Path, dataset_id: str = DATASET_ID) -> dict:
     if not path.exists():
-        return {"dataset_id": DATASET_ID, "files": {}}
+        return {"dataset_id": dataset_id, "files": {}}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise HistoryDownloadError(f"invalid manifest: {path}") from exc
-    if data.get("dataset_id") != DATASET_ID or not isinstance(data.get("files"), dict):
+    if data.get("dataset_id") != dataset_id or not isinstance(data.get("files"), dict):
         raise HistoryDownloadError(f"unexpected manifest structure: {path}")
     return data
 
@@ -245,6 +256,9 @@ def download_file(
     manifest_path: Path,
     timeout: int = 120,
     force: bool = False,
+    dataset_id: str = DATASET_ID,
+    dataset_page: str = DATASET_PAGE,
+    catalog_url: str = CATALOG_URL,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     destination = output_dir / entry.filename
@@ -256,7 +270,7 @@ def download_file(
         return destination
 
     form = urlencode(
-        {"infId": DATASET_ID, "seqNo": "", "seq": entry.seq, "infSeq": "1"}
+        {"infId": dataset_id, "seqNo": "", "seq": entry.seq, "infSeq": "1"}
     ).encode("ascii")
     request = Request(
         DOWNLOAD_URL,
@@ -267,7 +281,7 @@ def download_file(
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Content-Type": "application/x-www-form-urlencoded",
             "Origin": "https://data.seoul.go.kr",
-            "Referer": DATASET_PAGE,
+            "Referer": dataset_page,
         },
     )
 
@@ -323,8 +337,8 @@ def download_file(
             print(f"KEEP  incomplete file for inspection: {partial}", file=sys.stderr)
         raise
 
-    manifest = _load_manifest(manifest_path)
-    manifest["catalog_url"] = CATALOG_URL
+    manifest = _load_manifest(manifest_path, dataset_id=dataset_id)
+    manifest["catalog_url"] = catalog_url
     manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
     manifest["files"][entry.filename] = {
         **asdict(entry),

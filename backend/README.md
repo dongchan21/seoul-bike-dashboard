@@ -94,3 +94,20 @@ npm.cmd run dev
 ```
 
 브라우저는 `http://127.0.0.1:5173`을 연다. 화면의 조회 버튼은 SQLite만 다시 읽으며 서울시 API를 호출하지 않는다.
+# OA-21229 5분 대여·반납 파이프라인
+
+```powershell
+# 공식 카탈로그 확인 및 최신 일별 파일 다운로드
+.\.venv\Scripts\python.exe -m backend.download_station_flow --list
+.\.venv\Scripts\python.exe -m backend.download_station_flow --latest
+
+# 다운로드된 모든 ZIP을 집계하고 마스터를 결합한 뒤 베이스라인 학습
+.\.venv\Scripts\python.exe -m backend.run_history_pipeline
+
+# 처리 상태 확인
+.\.venv\Scripts\python.exe -m backend.run_history_pipeline --status
+```
+
+`aggregate_flows.py`는 원본 파일을 일자 단위로 스트리밍 처리한다. 각 대여소마다 하루 288개 5분 구간을 생성하므로 0건인 구간도 모델 학습에 포함된다. 최신 일별 파일은 월별 파일보다 우선순위가 높아 겹치는 날짜를 나중에 잘못 덮어쓰지 않는다.
+
+`baseline.py`의 `seasonal-mean-v1`은 대여소·요일·5분 시점별 대여량과 반납량 평균이다. 30분 예측은 연속된 6개 구간을 합산한다. 같은 요일 자료가 없으면 해당 대여소의 같은 시간대 전체 요일 평균으로 대체하고, 그것도 없으면 0을 사용한다.
