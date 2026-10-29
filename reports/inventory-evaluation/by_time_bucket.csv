@@ -1,0 +1,7 @@
+﻿group,model,samples,mae,rmse,wape,actualMean,predictedMean
+daytime,seasonal-mean,4128,1.039109,1.718184,0.143182,7.257267,7.24952
+daytime,zero-change,4128,1.026163,1.798605,0.141398,7.257267,7.412306
+evening-commute,seasonal-mean,9288,1.204294,1.781211,0.193343,6.22879,6.250185
+evening-commute,zero-change,9288,1.201335,1.927017,0.192868,6.22879,6.434862
+night,seasonal-mean,344,0.528832,0.851101,0.078278,6.755814,6.724477
+night,zero-change,344,0.473837,0.874377,0.070138,6.755814,6.65407

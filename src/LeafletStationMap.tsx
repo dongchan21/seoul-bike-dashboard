@@ -16,6 +16,7 @@ type MarkerRecord = {
 }
 
 function stationStatus(station: LiveStation): Status {
+  if (station.predictionAvailable && station.forecastStatus) return station.forecastStatus
   if (station.currentBikes === 0 || (station.capacity > 0 && station.occupancyRate <= 20)) return 'shortage'
   if (station.capacity > 0 && station.occupancyRate >= 80) return 'surplus'
   return 'normal'
@@ -47,7 +48,9 @@ function popupContent(station: LiveStation) {
   root.appendChild(id)
 
   const stock = document.createElement('p')
-  stock.textContent = `현재 ${station.currentBikes}대 / 거치대 ${station.capacity}개 · 거치율 ${station.occupancyRate.toFixed(0)}%`
+  stock.textContent = station.predictionAvailable
+    ? `현재 ${station.currentBikes}대 → 30분 후 ${station.expectedBikes30m?.toFixed(1)}대`
+    : `현재 ${station.currentBikes}대 / 거치대 ${station.capacity}개 · 모델 범위 외`
   root.appendChild(stock)
   return root
 }
@@ -101,7 +104,10 @@ export function LeafletStationMap({ stations, selected, onSelect }: Props) {
         [station.latitude, station.longitude],
         markerStyle(station, station.stationId === selected),
       )
-      marker.bindTooltip(`${station.stationName} · 현재 ${station.currentBikes}대`, {
+      marker.bindTooltip(
+        station.predictionAvailable
+          ? `${station.stationName} · ${station.currentBikes}대 → ${station.expectedBikes30m?.toFixed(1)}대`
+          : `${station.stationName} · 현재 ${station.currentBikes}대`, {
         direction: 'top',
         offset: [0, -7],
       })

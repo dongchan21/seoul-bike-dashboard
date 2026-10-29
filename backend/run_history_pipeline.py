@@ -17,6 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-version", default=MODEL_VERSION)
     parser.add_argument("--start-date")
     parser.add_argument("--end-date")
+    parser.add_argument("--district")
     parser.add_argument("--status", action="store_true", help="print table and latest run summary")
     return parser
 
@@ -54,7 +55,16 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"no ZIP files found under {DEFAULT_RAW}")
     with connect(args.db) as db:
         for path in paths:
-            print(import_flow_zip(path, db, force=args.force))
+            print(
+                import_flow_zip(
+                    path,
+                    db,
+                    force=args.force,
+                    district=args.district,
+                    start_date=args.start_date,
+                    end_date=args.end_date,
+                )
+            )
         print(
             train_baseline(
                 db,

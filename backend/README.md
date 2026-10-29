@@ -1,16 +1,14 @@
-# 따릉이 백엔드 데이터 수집 및 API
+# 실시간 따릉이 재고 수집기
 
-수집 코드는 Python 3.10 이상과 표준 라이브러리를 사용한다. FastAPI 실행 패키지는 `requirements.txt`에 있다.
+Python 3.10 이상, 표준 라이브러리만 사용한다. 추가 pip 설치가 없다.
 
-## 실시간 재고 수집
-
-### 실행
+## 실행
 
 프로젝트 폴더에서 다음을 실행한다.
 
 ```powershell
 Set-Location 'D:\졸업프로젝트'
-Copy-Item .env.example .env
+Copy-Item .env .env
 # .env를 편집해 SEOUL_API_KEY에 발급받은 키 입력. 이미 .env가 있으면 복사 생략.
 python -m backend.collect --once
 python -m backend.collect --status
@@ -25,7 +23,7 @@ Python 명령이 없다면 정상 설치된 Python 3.10 이상 실행 파일 경
 키 발급·서비스 사용 신청: [서울 열린데이터광장 공식 데이터](https://data.seoul.go.kr/dataList/OA-15493/A/1/datasetView.do).
 공식 예시의 HTTP 주소 openapi.seoul.go.kr:8088을 사용한다. 인증키가 URL 경로로 전송되므로 요청 URL은 로그에 남기지 않는다.
 
-### 저장 위치
+## 저장 위치
 
 - data/inventory/raw/YYYY-MM-DD/실행ID/: 페이지별 원본 응답 gzip. 유효하지 않은 JSON 응답도 보존.
 - data/inventory/inventory.sqlite3: 실행 이력과 대여소별 관측.
@@ -37,7 +35,7 @@ Python 명령이 없다면 정상 설치된 Python 3.10 이상 실행 파일 경
 원본과 DB 모두 기본적으로 D 프로젝트 내부에 저장된다. --data-dir로 다른 디스크를 지정할 수 있다.
 데이터는 자동 삭제하지 않으므로 주기적으로 용량을 확인한다.
 
-### 안정성 규칙
+## 안정성 규칙
 
 - 요청당 최대 1,000건. 짧은 마지막 페이지 또는 INFO-200까지 계속 요청한다.
 - 총 대여소 수를 2,000으로 고정하지 않으며 list_total_count를 전역 합계로 가정하지 않는다.
@@ -52,62 +50,57 @@ Python 명령이 없다면 정상 설치된 Python 3.10 이상 실행 파일 경
 - 여러 페이지는 순서대로 수집되므로 정확히 동시에 관측된 스냅샷은 아니다. 목록 변경으로 인한 누락까지 완전히 보장하지는 않는다.
 - PC 절전·종료 중에는 수집하지 못한다. 현재 상태 API로 지난 시점 재고를 복원할 수 없다.
 
-## 과거 대여·반납 이력 다운로드
-
-공식 원천은 [서울시 공공자전거 따릉이 대여이력 정보(OA-15182)](https://data.seoul.go.kr/dataList/OA-15182/F/1/datasetView.do)다. API 키는 필요 없지만 파일이 수백 MB~수 GB이므로 목록과 용량을 먼저 확인한다.
-
-```powershell
-# 공식 파일 목록
-.\.venv\Scripts\python.exe -m backend.download_history --list
-
-# 선택만 확인하고 다운로드하지 않음
-.\.venv\Scripts\python.exe -m backend.download_history --period 2015 --dry-run
-
-# 2015년 연간 ZIP 다운로드
-.\.venv\Scripts\python.exe -m backend.download_history --period 2015
-
-# 특정 월 또는 최신 파일
-.\.venv\Scripts\python.exe -m backend.download_history --period 2026-06
-.\.venv\Scripts\python.exe -m backend.download_history --latest
-```
-
-파일은 `data/history/raw/`, SHA-256·크기·수집 시각은 `data/history/manifest.json`에 저장한다. 공식 목록 크기, 응답 파일명, HTML 오류 여부, ZIP/CSV 형식을 검사하고 검증 완료 후 `.part`를 최종 파일명으로 교체한다. 이미 정상 파일이 있으면 건너뛰며 `--force`로 교체할 수 있다.
-
-`--period YYYY`는 그 해에 해당하는 항목을 모두 선택할 수 있으므로 최신 연도의 월별 파일 여러 개가 선택될 수 있다. 큰 파일을 받기 전 `--dry-run`으로 총용량을 확인한다. 이 단계는 원본 보존까지만 담당하며 압축 해제와 5분 단위 집계는 별도 처리로 구현한다.
-
-2015년 파일로 실제 검증한 결과 ZIP 안에는 9~12월 CSV 4개가 있고 CSV 인코딩은 CP949다. 대여·반납 일시와 양쪽 대여소 번호·ID가 있어 별도 사건으로 집계할 수 있다. 생년, 성별, 이용자 종류 등 모델에 불필요한 이용자 속성은 원본에만 보존하고 정제 테이블에는 적재하지 않는다.
-
 ## 검증
 
 ```powershell
-python -m unittest discover -s backend -p 'test_*.py' -v
+python -m unittest backend.test_collect -v
 ```
 
-테스트는 가짜 API 응답으로 실시간 페이지 순회, 중복 실행, 부분 실패·복구, 잘못된 숫자를 검증한다. 과거 파일 수집은 목록 파싱, 기간 선택, 두 가지 한글 응답 파일명 인코딩, ZIP 검증과 HTML 오류 차단을 검증한다.
+테스트는 가짜 API 응답으로 페이지 순회, 중복 실행, 부분 실패·복구, 잘못된 숫자를 검증한다.
 실제 API 검증은 본인 키를 설정한 후 --once로 수행해야 한다.
 success와 0보다 큰 rows를 확인한 뒤 --status로 실행 이력을 점검한다.
-FastAPI와 React 화면이 이 DB에 연결되어 있다. 별도 터미널에서 다음을 실행한다.
+현재 React 화면은 더미 모드이며 이 DB와 아직 연결되지 않았다.
+
+## 과거 평균 기준 모델 백테스트
+
+강남구 1년 데이터의 앞 8개월을 학습, 다음 2개월을 검증, 마지막 2개월을 테스트로 자동 분리한다. 검증·테스트 행으로 평균을 만들지 않으므로 미래 정보 누수가 없다.
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.api:app --host 127.0.0.1 --port 8000
-npm.cmd run dev
+Set-Location 'D:\졸업프로젝트'
+.\.venv\Scripts\python.exe -m backend.evaluate_baseline
 ```
 
-브라우저는 `http://127.0.0.1:5173`을 연다. 화면의 조회 버튼은 SQLite만 다시 읽으며 서울시 API를 호출하지 않는다.
-# OA-21229 5분 대여·반납 파이프라인
+기본 평가는 서로 크게 겹치는 표본을 반복 집계하지 않도록 30분 간격으로 예측한다. 운영 주기와 똑같이 모든 5분 시점을 평가하려면 다음 옵션을 사용한다.
 
 ```powershell
-# 공식 카탈로그 확인 및 최신 일별 파일 다운로드
-.\.venv\Scripts\python.exe -m backend.download_station_flow --list
-.\.venv\Scripts\python.exe -m backend.download_station_flow --latest
-
-# 다운로드된 모든 ZIP을 집계하고 마스터를 결합한 뒤 베이스라인 학습
-.\.venv\Scripts\python.exe -m backend.run_history_pipeline
-
-# 처리 상태 확인
-.\.venv\Scripts\python.exe -m backend.run_history_pipeline --status
+.\.venv\Scripts\python.exe -m backend.evaluate_baseline --origin-step-minutes 5
 ```
 
-`aggregate_flows.py`는 원본 파일을 일자 단위로 스트리밍 처리한다. 각 대여소마다 하루 288개 5분 구간을 생성하므로 0건인 구간도 모델 학습에 포함된다. 최신 일별 파일은 월별 파일보다 우선순위가 높아 겹치는 날짜를 나중에 잘못 덮어쓰지 않는다.
+결과는 `reports/baseline-evaluation/`에 저장된다.
 
-`baseline.py`의 `seasonal-mean-v1`은 대여소·요일·5분 시점별 대여량과 반납량 평균이다. 30분 예측은 연속된 6개 구간을 합산한다. 같은 요일 자료가 없으면 해당 대여소의 같은 시간대 전체 요일 평균으로 대체하고, 그것도 없으면 0을 사용한다.
+- `evaluation.json`: 기간·학습량·커버리지·전체 지표
+- `overall.csv`: 모델별 MAE·RMSE·WAPE
+- `by_time_bucket.csv`: 출근·낮·퇴근·야간 지표
+- `by_station.csv`: 대여소별 지표
+- `SUMMARY.md`: 실제 실행 결과와 해석
+
+비교 모델은 수요 0, 직전 30분 반복, 대여소·요일·5분 시점 과거 평균의 세 가지다. `stockChange30m`은 반납량에서 대여량을 뺀 흐름 기반 재고 변화이며 실제 재고 스냅숏 자체가 아니다.
+
+## 실제 재고 스냅숏 평가
+
+수집 DB에서 정확히 30분 차이인 성공 스냅숏을 연결해 대시보드의 평균 기반 예상 재고와 실제 재고를 비교한다. 모델 학습 종료일 이전의 시점은 미래 정보 누수를 막기 위해 기본적으로 제외한다.
+
+```powershell
+Set-Location 'D:\졸업프로젝트'
+.\.venv\Scripts\python.exe -m backend.evaluate_inventory
+```
+
+다음 결과가 `reports/inventory-evaluation/`에 생성된다.
+
+- 실제 재고 MAE·RMSE
+- 현재 재고 유지 기준과 평균 모델 비교
+- 부족·정상·과잉 Precision·Recall·F1과 혼동행렬
+- 실제 0대 품절과 만차 탐지 성능
+- 시간대별·대여소별 재고 오차
+
+`--include-training-period` 옵션은 학습 종료일 이전 스냅숏도 포함하지만 데이터 누수가 생길 수 있으므로 공식 평가에는 사용하지 않는다.

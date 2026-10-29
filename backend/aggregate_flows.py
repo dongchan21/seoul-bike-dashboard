@@ -97,15 +97,31 @@ def ensure_schema(db: sqlite3.Connection) -> None:
           LEFT JOIN station_master m ON m.station_id = f.station_id;
         """
     )
+    station_columns = {row[1] for row in db.execute("PRAGMA table_info(station_master)")}
+    if "district" not in station_columns:
+        db.execute("ALTER TABLE station_master ADD COLUMN district TEXT")
+    if "address" not in station_columns:
+        db.execute("ALTER TABLE station_master ADD COLUMN address TEXT")
+    import_columns = {row[1] for row in db.execute("PRAGMA table_info(flow_imports)")}
+    if "accepted_rows" not in import_columns:
+        db.execute("ALTER TABLE flow_imports ADD COLUMN accepted_rows INTEGER NOT NULL DEFAULT 0")
+    if "scope" not in import_columns:
+        db.execute("ALTER TABLE flow_imports ADD COLUMN scope TEXT NOT NULL DEFAULT 'all'")
 
 
-def _open_csv(archive: zipfile.ZipFile) -> tuple[io.TextIOWrapper, str]:
+def _csv_members(archive: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
     members = [item for item in archive.infolist() if not item.is_dir()]
-    if len(members) != 1 or Path(members[0].filename).suffix.lower() != ".csv":
-        raise FlowImportError("OA-21229 ZIP must contain exactly one CSV file")
-    member = members[0]
-    if Path(member.filename).name != member.filename:
-        raise FlowImportError(f"unsafe ZIP member path: {member.filename!r}")
+    if not members or any(Path(item.filename).suffix.lower() != ".csv" for item in members):
+        raise FlowImportError("OA-21229 ZIP must contain only CSV files")
+    for member in members:
+        if Path(member.filename).name != member.filename:
+            raise FlowImportError(f"unsafe ZIP member path: {member.filename!r}")
+    return sorted(members, key=lambda item: item.filename)
+
+
+def _open_csv(
+    archive: zipfile.ZipFile, member: zipfile.ZipInfo
+) -> tuple[io.TextIOWrapper, str]:
     with archive.open(member) as sample_stream:
         sample = sample_stream.read(4096)
     encoding = "utf-8-sig"
@@ -207,6 +223,9 @@ def import_flow_zip(
     db: sqlite3.Connection,
     *,
     force: bool = False,
+    district: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
 ) -> dict[str, int | str]:
     path = path.resolve()
     if not path.is_file() or not zipfile.is_zipfile(path):
@@ -219,13 +238,27 @@ def import_flow_zip(
     file_hash = _file_sha256(path)
     priority = _source_priority(source_file)
     imported_at = utcnow()
-    source_rows = dense_rows = station_days = 0
+    source_rows = accepted_rows = dense_rows = station_days = 0
     completed_days: set[str] = set()
     min_date: str | None = None
     max_date: str | None = None
     current_day: str | None = None
     flows: dict[tuple[str, int], list[int]] = {}
     names: dict[str, str] = {}
+    allowed_station_ids: set[str] | None = None
+    if district:
+        allowed_station_ids = {
+            row[0]
+            for row in db.execute(
+                "SELECT station_id FROM station_master WHERE district=?", (district,)
+            )
+        }
+        if not allowed_station_ids:
+            raise FlowImportError(
+                f"no station IDs found for district {district!r}; load OA-21235 first"
+            )
+    if start_date and end_date and start_date > end_date:
+        raise FlowImportError("start_date must not be after end_date")
 
     def flush_day() -> None:
         nonlocal dense_rows, station_days
@@ -284,53 +317,82 @@ def import_flow_zip(
             db.execute("DELETE FROM flows_5m WHERE source_file=?", (source_file,))
             db.execute("DELETE FROM flow_imports WHERE source_file=?", (source_file,))
         with zipfile.ZipFile(path) as archive:
-            stream, _encoding = _open_csv(archive)
-            with stream:
-                reader = csv.DictReader(stream)
-                columns = set(reader.fieldnames or [])
-                missing = REQUIRED_COLUMNS - columns
-                if missing:
-                    raise FlowImportError(f"missing CSV columns: {sorted(missing)}")
-                for row in reader:
-                    source_rows += 1
-                    day = _parse_day(row["기준_날짜"])
-                    if current_day is None:
-                        current_day = day
-                    elif day != current_day:
-                        flush_day()
-                        completed_days.add(current_day)
-                        if day in completed_days:
-                            raise FlowImportError("CSV dates are not grouped contiguously")
-                        current_day = day
-                        flows = {}
-                        names = {}
-                    min_date = day if min_date is None else min(min_date, day)
-                    max_date = day if max_date is None else max(max_date, day)
-                    minute = _parse_minute(row["기준_시간대"])
-                    count = _parse_count(row["전체_건수"])
-                    criterion = row["집계_기준"].strip()
-                    if criterion == "출발시간":
-                        station_id = row["시작_대여소_ID"].strip()
-                        station_name = row["시작_대여소명"].strip()
-                        index = 0
-                    elif criterion == "도착시간":
-                        station_id = row["종료_대여소_ID"].strip()
-                        station_name = row["종료_대여소명"].strip()
-                        index = 1
-                    else:
-                        raise FlowImportError(f"unknown 집계_기준: {criterion!r}")
-                    if not station_id:
-                        raise FlowImportError("empty station ID")
-                    names.setdefault(station_id, station_name or station_id)
-                    values = flows.setdefault((station_id, minute), [0, 0])
-                    values[index] += count
-                flush_day()
+            for member in _csv_members(archive):
+                stream, _encoding = _open_csv(archive, member)
+                with stream:
+                    reader = csv.reader(stream)
+                    header = next(reader, None)
+                    columns = set(header or [])
+                    missing = REQUIRED_COLUMNS - columns
+                    if missing:
+                        raise FlowImportError(
+                            f"missing CSV columns in {member.filename}: {sorted(missing)}"
+                        )
+                    indexes = {column: header.index(column) for column in REQUIRED_COLUMNS}
+                    cached_raw_day: str | None = None
+                    cached_day: str | None = None
+                    for row in reader:
+                        if not row:
+                            continue
+                        source_rows += 1
+                        try:
+                            raw_day = row[indexes["기준_날짜"]]
+                            if raw_day != cached_raw_day:
+                                cached_raw_day = raw_day
+                                cached_day = _parse_day(raw_day)
+                            day = cached_day
+                        except IndexError as exc:
+                            raise FlowImportError(
+                                f"short CSV row in {member.filename} at source row {source_rows}"
+                            ) from exc
+                        assert day is not None
+                        if (start_date and day < start_date) or (end_date and day > end_date):
+                            continue
+                        if current_day is None:
+                            current_day = day
+                        elif day != current_day:
+                            flush_day()
+                            completed_days.add(current_day)
+                            if day in completed_days:
+                                raise FlowImportError("CSV dates are not grouped contiguously")
+                            current_day = day
+                            flows = {}
+                            names = {}
+                        min_date = day if min_date is None else min(min_date, day)
+                        max_date = day if max_date is None else max(max_date, day)
+                        criterion = row[indexes["집계_기준"]].strip()
+                        if criterion == "출발시간":
+                            station_id = row[indexes["시작_대여소_ID"]].strip()
+                            station_name = row[indexes["시작_대여소명"]].strip()
+                            index = 0
+                        elif criterion == "도착시간":
+                            station_id = row[indexes["종료_대여소_ID"]].strip()
+                            station_name = row[indexes["종료_대여소명"]].strip()
+                            index = 1
+                        else:
+                            raise FlowImportError(f"unknown 집계_기준: {criterion!r}")
+                        if not station_id:
+                            raise FlowImportError("empty station ID")
+                        if allowed_station_ids is not None and station_id not in allowed_station_ids:
+                            continue
+                        accepted_rows += 1
+                        minute = _parse_minute(row[indexes["기준_시간대"]])
+                        count = _parse_count(row[indexes["전체_건수"]])
+                        names.setdefault(station_id, station_name or station_id)
+                        values = flows.setdefault((station_id, minute), [0, 0])
+                        values[index] += count
+            flush_day()
 
-        if not source_rows or min_date is None or max_date is None:
+        if not source_rows:
             raise FlowImportError("CSV contains no data rows")
+        if not accepted_rows or min_date is None or max_date is None:
+            raise FlowImportError("CSV contains no rows matching the requested scope")
         master_rows = sync_station_master(db)
         db.execute(
-            "INSERT INTO flow_imports VALUES(?,?,?,?,?,?,?,?,?,?)",
+            """INSERT INTO flow_imports(
+                 source_file, dataset_id, sha256, imported_at, source_rows, dense_rows,
+                 station_days, min_date, max_date, source_priority, accepted_rows, scope
+               ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 source_file,
                 DATASET_ID,
@@ -342,6 +404,8 @@ def import_flow_zip(
                 min_date,
                 max_date,
                 priority,
+                accepted_rows,
+                district or "all",
             ),
         )
         db.commit()
@@ -353,6 +417,7 @@ def import_flow_zip(
         "sourceFile": source_file,
         "status": "imported",
         "sourceRows": source_rows,
+        "acceptedRows": accepted_rows,
         "denseRows": dense_rows,
         "stationDays": station_days,
         "masterRows": master_rows,
@@ -366,6 +431,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("paths", nargs="*", type=Path, help="ZIP files; defaults to raw/*.zip")
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--force", action="store_true", help="rebuild files already imported")
+    parser.add_argument("--district", help="only keep stations in this district")
+    parser.add_argument("--start-date", help="inclusive YYYY-MM-DD")
+    parser.add_argument("--end-date", help="inclusive YYYY-MM-DD")
     parser.add_argument("--sync-master-only", action="store_true")
     return parser
 
@@ -380,7 +448,14 @@ def main(argv: list[str] | None = None) -> int:
         if not paths:
             raise SystemExit(f"no ZIP files found under {DEFAULT_RAW}")
         for path in paths:
-            result = import_flow_zip(path, db, force=args.force)
+            result = import_flow_zip(
+                path,
+                db,
+                force=args.force,
+                district=args.district,
+                start_date=args.start_date,
+                end_date=args.end_date,
+            )
             print(result)
     return 0
 

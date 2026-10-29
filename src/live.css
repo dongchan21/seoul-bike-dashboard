@@ -27,4 +27,13 @@
 .leaflet-station-popup strong{font-size:13px;margin-bottom:3px}
 .leaflet-station-popup small{font-size:10px;color:var(--muted)}
 .leaflet-station-popup p{margin:8px 0 0;font-size:11px;white-space:nowrap}
+.candidate-card{width:100%;display:grid;grid-template-columns:26px minmax(0,1fr) auto 18px;align-items:center;gap:9px;padding:13px 2px;border:0;border-bottom:1px solid #e8edef;background:white;text-align:left;color:#2c4053}
+.candidate-card:last-child{border-bottom:0}
+.candidate-card:hover{background:#f6fafb}
+.candidate-card>span:nth-child(2){min-width:0;display:flex;flex-direction:column}
+.candidate-card b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.candidate-card small{margin-top:3px;color:var(--muted);font-size:9px}
+.candidate-card>svg{width:14px;color:#8293a2}
+.routes-panel .route-list{padding:3px 16px}
+.sync small{white-space:nowrap}
 @media(max-width:700px){.model-pending{padding:50px 20px}}

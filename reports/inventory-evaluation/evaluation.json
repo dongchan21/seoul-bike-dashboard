@@ -1,0 +1,203 @@
+{
+  "evaluationVersion": "inventory-backtest-v1",
+  "inventoryDatabase": "D:\\졸업프로젝트\\data\\inventory\\inventory.sqlite3",
+  "predictionDatabase": "D:\\졸업프로젝트\\data\\gangnam\\gangnam.sqlite3",
+  "model": {
+    "modelVersion": "seasonal-mean-v1",
+    "trainedAt": "2026-10-13T13:45:33.643836+00:00",
+    "trainingStart": "2025-10-09",
+    "trainingEnd": "2026-10-08",
+    "trainingRows": 17395776,
+    "stationCount": 182
+  },
+  "trainingPeriodPairsIncluded": false,
+  "inventoryRange": {
+    "start": "2026-10-06T08:55:00+00:00",
+    "end": "2026-10-29T06:05:00+00:00"
+  },
+  "evaluatedOriginRange": {
+    "start": "2026-10-13T07:25:00+00:00",
+    "end": "2026-10-15T10:45:00+00:00"
+  },
+  "counts": {
+    "successfulSlots": 348,
+    "allExact30MinuteSlotPairs": 304,
+    "excludedTrainingPeriodPairs": 224,
+    "eligible30MinuteSlotPairs": 80,
+    "stationForecasts": 13760,
+    "stations": 172,
+    "missingModelRows": 0,
+    "invalidCapacityRows": 0
+  },
+  "inventoryMetrics": {
+    "zero-change": {
+      "samples": 13760,
+      "mae": 1.130596,
+      "rmse": 1.869799,
+      "wape": 0.172597,
+      "actualMean": 6.550509,
+      "predictedMean": 6.733576
+    },
+    "seasonal-mean": {
+      "samples": 13760,
+      "mae": 1.137852,
+      "rmse": 1.745089,
+      "wape": 0.173704,
+      "actualMean": 6.550509,
+      "predictedMean": 6.561843
+    }
+  },
+  "clippedInventoryMetrics": {
+    "zero-change": {
+      "samples": 13760,
+      "mae": 2.21657,
+      "rmse": 4.175423,
+      "wape": 0.338381,
+      "actualMean": 6.550509,
+      "predictedMean": 5.231904
+    },
+    "seasonal-mean": {
+      "samples": 13760,
+      "mae": 2.176733,
+      "rmse": 4.13047,
+      "wape": 0.3323,
+      "actualMean": 6.550509,
+      "predictedMean": 5.142193
+    }
+  },
+  "statusClassification": {
+    "zero-change": {
+      "samples": 13760,
+      "accuracy": 0.845712,
+      "macroF1": 0.843767,
+      "perStatus": {
+        "shortage": {
+          "support": 5078,
+          "precision": 0.886415,
+          "recall": 0.85447,
+          "f1": 0.870149
+        },
+        "normal": {
+          "support": 4292,
+          "precision": 0.756644,
+          "recall": 0.762815,
+          "f1": 0.759717
+        },
+        "surplus": {
+          "support": 4390,
+          "precision": 0.886734,
+          "recall": 0.916629,
+          "f1": 0.901434
+        }
+      },
+      "matrix": {
+        "shortage": {
+          "shortage": 4339,
+          "normal": 712,
+          "surplus": 27
+        },
+        "normal": {
+          "shortage": 531,
+          "normal": 3274,
+          "surplus": 487
+        },
+        "surplus": {
+          "shortage": 25,
+          "normal": 341,
+          "surplus": 4024
+        }
+      }
+    },
+    "seasonal-mean": {
+      "samples": 13760,
+      "accuracy": 0.846584,
+      "macroF1": 0.846943,
+      "perStatus": {
+        "shortage": {
+          "support": 5078,
+          "precision": 0.893599,
+          "recall": 0.830248,
+          "f1": 0.860759
+        },
+        "normal": {
+          "support": 4292,
+          "precision": 0.732925,
+          "recall": 0.807549,
+          "f1": 0.768429
+        },
+        "surplus": {
+          "support": 4390,
+          "precision": 0.919777,
+          "recall": 0.903645,
+          "f1": 0.91164
+        }
+      },
+      "matrix": {
+        "shortage": {
+          "shortage": 4216,
+          "normal": 856,
+          "surplus": 6
+        },
+        "normal": {
+          "shortage": 486,
+          "normal": 3466,
+          "surplus": 340
+        },
+        "surplus": {
+          "shortage": 16,
+          "normal": 407,
+          "surplus": 3967
+        }
+      }
+    }
+  },
+  "hardEvents": {
+    "stockout": {
+      "zero-change": {
+        "truePositive": 1630,
+        "falsePositive": 604,
+        "falseNegative": 798,
+        "trueNegative": 10728,
+        "precision": 0.729633,
+        "recall": 0.671334,
+        "f1": 0.699271
+      },
+      "seasonal-mean": {
+        "truePositive": 1370,
+        "falsePositive": 467,
+        "falseNegative": 1058,
+        "trueNegative": 10865,
+        "precision": 0.745781,
+        "recall": 0.56425,
+        "f1": 0.642438
+      }
+    },
+    "fullStation": {
+      "zero-change": {
+        "truePositive": 3161,
+        "falsePositive": 466,
+        "falseNegative": 324,
+        "trueNegative": 9809,
+        "precision": 0.871519,
+        "recall": 0.90703,
+        "f1": 0.88892
+      },
+      "seasonal-mean": {
+        "truePositive": 3077,
+        "falsePositive": 294,
+        "falseNegative": 408,
+        "trueNegative": 9981,
+        "precision": 0.912786,
+        "recall": 0.882927,
+        "f1": 0.897608
+      }
+    }
+  },
+  "notes": [
+    "Only exact t and t+30-minute successful inventory snapshots are paired.",
+    "Origins on or before the model training end date are excluded by default to prevent leakage.",
+    "zero-change predicts that the current inventory remains unchanged.",
+    "seasonal-mean mirrors the dashboard formula: current + expected returns - expected rentals.",
+    "Observed inventory can include operator rebalancing, maintenance, and collection timing differences in addition to customer flows."
+  ]
+}

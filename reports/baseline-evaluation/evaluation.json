@@ -1,0 +1,257 @@
+{
+  "evaluationVersion": "baseline-backtest-v1",
+  "sourceDatabase": "D:\\졸업프로젝트\\data\\gangnam\\gangnam.sqlite3",
+  "sourceRange": {
+    "start": "2025-10-09",
+    "end": "2026-10-08"
+  },
+  "periods": {
+    "trainStart": "2025-10-09",
+    "trainEnd": "2026-06-08",
+    "validationStart": "2026-06-09",
+    "validationEnd": "2026-08-08",
+    "testStart": "2026-08-09",
+    "testEnd": "2026-10-08"
+  },
+  "training": {
+    "rows": 11805408,
+    "stations": 181,
+    "stationWeekdaySlots": 356256,
+    "stationTimeSlots": 52128
+  },
+  "periodStats": {
+    "validation": {
+      "stationDays": 9964,
+      "windows": 468308,
+      "skippedDays": 0
+    },
+    "test": {
+      "stationDays": 9447,
+      "windows": 444009,
+      "skippedDays": 0
+    }
+  },
+  "originStepMinutes": 30,
+  "coverage": {
+    "stationWeekdaySlots": 5467134,
+    "stationTimeFallbackSlots": 282,
+    "zeroFallbackSlots": 6486
+  },
+  "models": {
+    "zero-flow": "predicts zero rentals and returns",
+    "recent-30m": "repeats the immediately preceding 30-minute totals",
+    "seasonal-mean": "training-period station + weekday + 5-minute mean"
+  },
+  "targets": {
+    "rentals30m": "actual versus predicted rentals in the next 30 minutes",
+    "returns30m": "actual versus predicted returns in the next 30 minutes",
+    "stockChange30m": "returns minus rentals; not an observed inventory snapshot"
+  },
+  "metrics": {
+    "overall": [
+      {
+        "split": "test",
+        "model": "recent-30m",
+        "target": "rentals30m",
+        "samples": 444009,
+        "mae": 0.619843,
+        "rmse": 1.188018,
+        "wape": 1.126817,
+        "actualMean": 0.550083,
+        "predictedMean": 0.552777
+      },
+      {
+        "split": "test",
+        "model": "recent-30m",
+        "target": "returns30m",
+        "samples": 444009,
+        "mae": 0.586033,
+        "rmse": 1.12981,
+        "wape": 1.113873,
+        "actualMean": 0.526122,
+        "predictedMean": 0.521848
+      },
+      {
+        "split": "test",
+        "model": "recent-30m",
+        "target": "stockChange30m",
+        "samples": 444009,
+        "mae": 0.880685,
+        "rmse": 1.541655,
+        "wape": 1.52953,
+        "actualMean": -0.023961,
+        "predictedMean": -0.03093
+      },
+      {
+        "split": "test",
+        "model": "seasonal-mean",
+        "target": "rentals30m",
+        "samples": 444009,
+        "mae": 0.533841,
+        "rmse": 1.001603,
+        "wape": 0.970473,
+        "actualMean": 0.550083,
+        "predictedMean": 0.387103
+      },
+      {
+        "split": "test",
+        "model": "seasonal-mean",
+        "target": "returns30m",
+        "samples": 444009,
+        "mae": 0.5012,
+        "rmse": 0.949966,
+        "wape": 0.952631,
+        "actualMean": 0.526122,
+        "predictedMean": 0.373535
+      },
+      {
+        "split": "test",
+        "model": "seasonal-mean",
+        "target": "stockChange30m",
+        "samples": 444009,
+        "mae": 0.623291,
+        "rmse": 1.081863,
+        "wape": 1.0825,
+        "actualMean": -0.023961,
+        "predictedMean": -0.013568
+      },
+      {
+        "split": "test",
+        "model": "zero-flow",
+        "target": "rentals30m",
+        "samples": 444009,
+        "mae": 0.550083,
+        "rmse": 1.338573,
+        "wape": 1.0,
+        "actualMean": 0.550083,
+        "predictedMean": 0.0
+      },
+      {
+        "split": "test",
+        "model": "zero-flow",
+        "target": "returns30m",
+        "samples": 444009,
+        "mae": 0.526122,
+        "rmse": 1.297093,
+        "wape": 1.0,
+        "actualMean": 0.526122,
+        "predictedMean": 0.0
+      },
+      {
+        "split": "test",
+        "model": "zero-flow",
+        "target": "stockChange30m",
+        "samples": 444009,
+        "mae": 0.575788,
+        "rmse": 1.15454,
+        "wape": 1.0,
+        "actualMean": -0.023961,
+        "predictedMean": 0.0
+      },
+      {
+        "split": "validation",
+        "model": "recent-30m",
+        "target": "rentals30m",
+        "samples": 468308,
+        "mae": 0.566917,
+        "rmse": 1.08919,
+        "wape": 1.190339,
+        "actualMean": 0.476266,
+        "predictedMean": 0.478892
+      },
+      {
+        "split": "validation",
+        "model": "recent-30m",
+        "target": "returns30m",
+        "samples": 468308,
+        "mae": 0.530565,
+        "rmse": 1.033415,
+        "wape": 1.168453,
+        "actualMean": 0.454075,
+        "predictedMean": 0.45021
+      },
+      {
+        "split": "validation",
+        "model": "recent-30m",
+        "target": "stockChange30m",
+        "samples": 468308,
+        "mae": 0.820879,
+        "rmse": 1.424787,
+        "wape": 1.533378,
+        "actualMean": -0.022191,
+        "predictedMean": -0.028682
+      },
+      {
+        "split": "validation",
+        "model": "seasonal-mean",
+        "target": "rentals30m",
+        "samples": 468308,
+        "mae": 0.485433,
+        "rmse": 0.851573,
+        "wape": 1.019248,
+        "actualMean": 0.476266,
+        "predictedMean": 0.389821
+      },
+      {
+        "split": "validation",
+        "model": "seasonal-mean",
+        "target": "returns30m",
+        "samples": 468308,
+        "mae": 0.45486,
+        "rmse": 0.803688,
+        "wape": 1.001728,
+        "actualMean": 0.454075,
+        "predictedMean": 0.37581
+      },
+      {
+        "split": "validation",
+        "model": "seasonal-mean",
+        "target": "stockChange30m",
+        "samples": 468308,
+        "mae": 0.577506,
+        "rmse": 0.989035,
+        "wape": 1.078765,
+        "actualMean": -0.022191,
+        "predictedMean": -0.014011
+      },
+      {
+        "split": "validation",
+        "model": "zero-flow",
+        "target": "rentals30m",
+        "samples": 468308,
+        "mae": 0.476266,
+        "rmse": 1.132119,
+        "wape": 1.0,
+        "actualMean": 0.476266,
+        "predictedMean": 0.0
+      },
+      {
+        "split": "validation",
+        "model": "zero-flow",
+        "target": "returns30m",
+        "samples": 468308,
+        "mae": 0.454075,
+        "rmse": 1.092798,
+        "wape": 1.0,
+        "actualMean": 0.454075,
+        "predictedMean": 0.0
+      },
+      {
+        "split": "validation",
+        "model": "zero-flow",
+        "target": "stockChange30m",
+        "samples": 468308,
+        "mae": 0.53534,
+        "rmse": 1.074119,
+        "wape": 1.0,
+        "actualMean": -0.022191,
+        "predictedMean": 0.0
+      }
+    ]
+  },
+  "notes": [
+    "All models are evaluated on the same windows from 00:30 through 23:30 at 30-minute origin intervals.",
+    "Training statistics never use validation or test rows.",
+    "stockChange30m measures flow-implied inventory change. Absolute observed inventory evaluation is a separate step using paired real-time snapshots."
+  ]
+}

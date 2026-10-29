@@ -10,6 +10,16 @@ export interface InventoryStatus {
   dataQuality: DataQuality
   lastRunStatus: string | null
   lastRunError: string | null
+  predictionModel: {
+    modelVersion: string
+    trainedAt: string
+    trainingStart: string
+    trainingEnd: string
+    trainingRows: number
+    stationCount: number
+    horizonMinutes: number
+    method: string
+  } | null
 }
 
 export interface LiveStation {
@@ -22,6 +32,18 @@ export interface LiveStation {
   longitude: number
   fetchedAt: string
   slot: string
+  predictionAvailable: boolean
+  district: string | null
+  address: string | null
+  expectedRentals30m: number | null
+  expectedReturns30m: number | null
+  expectedBikes30m: number | null
+  forecastStatus: 'shortage' | 'normal' | 'surplus' | null
+  recommendedAction: 'replenish' | 'collect' | 'none' | null
+  recommendedQuantity: number
+  priority: number | null
+  predictionAsOf: string | null
+  modelVersion: string | null
 }
 
 export interface InventoryPoint {

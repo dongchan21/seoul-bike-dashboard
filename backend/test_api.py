@@ -1,7 +1,7 @@
 import sqlite3
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from backend.api import inventory_status, latest_stations, station_history
@@ -33,6 +33,43 @@ class ApiQueryTests(unittest.TestCase):
         db.commit()
         db.close()
 
+        self.prediction_path = Path(self.temp.name) / "prediction.sqlite3"
+        model = sqlite3.connect(self.prediction_path)
+        model.executescript("""
+          CREATE TABLE station_master(
+            station_id TEXT PRIMARY KEY, district TEXT, address TEXT
+          );
+          CREATE TABLE baseline_models(
+            model_version TEXT PRIMARY KEY, trained_at TEXT, training_start TEXT,
+            training_end TEXT, training_rows INTEGER, station_count INTEGER, notes TEXT
+          );
+          CREATE TABLE baseline_5m(
+            model_version TEXT, station_id TEXT, weekday INTEGER,
+            minute_of_day INTEGER, sample_count INTEGER,
+            expected_rentals REAL, expected_returns REAL,
+            PRIMARY KEY(model_version, station_id, weekday, minute_of_day)
+          );
+        """)
+        model.execute(
+            "INSERT INTO station_master VALUES('ST-1','강남구','서울특별시 강남구 테스트로 1')"
+        )
+        model.execute(
+            "INSERT INTO baseline_models VALUES(?,?,?,?,?,?,?)",
+            ("seasonal-mean-v1", now, "2025-10-09", "2026-10-08", 1000, 1, "test"),
+        )
+        self.as_of = datetime.fromisoformat("2026-10-13T08:00:00+09:00")
+        for offset in range(0, 30, 5):
+            point = self.as_of + timedelta(minutes=offset)
+            model.execute(
+                "INSERT INTO baseline_5m VALUES(?,?,?,?,?,?,?)",
+                (
+                    "seasonal-mean-v1", "ST-1", point.weekday(),
+                    point.hour * 60 + point.minute, 10, 2.0, 1.0,
+                ),
+            )
+        model.commit()
+        model.close()
+
     def tearDown(self):
         self.temp.cleanup()
 
@@ -44,6 +81,27 @@ class ApiQueryTests(unittest.TestCase):
     def test_status_and_history(self):
         self.assertEqual(inventory_status(self.path)["stationCount"], 1)
         self.assertEqual(station_history("ST-1", 13, self.path)[0]["currentBikes"], 7)
+
+    def test_latest_inventory_with_30_minute_baseline_prediction(self):
+        row = latest_stations(
+            self.path,
+            prediction_path=self.prediction_path,
+            as_of=self.as_of,
+        )[0]
+        self.assertTrue(row["predictionAvailable"])
+        self.assertEqual(row["district"], "강남구")
+        self.assertEqual(row["expectedRentals30m"], 12.0)
+        self.assertEqual(row["expectedReturns30m"], 6.0)
+        self.assertEqual(row["expectedBikes30m"], 1.0)
+        self.assertEqual(row["forecastStatus"], "shortage")
+        self.assertEqual(row["recommendedAction"], "replenish")
+        self.assertEqual(row["recommendedQuantity"], 4)
+        self.assertEqual(row["priority"], 1)
+
+    def test_status_includes_prediction_model_metadata(self):
+        status = inventory_status(self.path, prediction_path=self.prediction_path)
+        self.assertEqual(status["predictionModel"]["modelVersion"], "seasonal-mean-v1")
+        self.assertEqual(status["predictionModel"]["horizonMinutes"], 30)
 
 
 if __name__ == "__main__":
