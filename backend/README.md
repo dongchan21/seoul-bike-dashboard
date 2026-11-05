@@ -59,7 +59,7 @@ python -m unittest backend.test_collect -v
 테스트는 가짜 API 응답으로 페이지 순회, 중복 실행, 부분 실패·복구, 잘못된 숫자를 검증한다.
 실제 API 검증은 본인 키를 설정한 후 --once로 수행해야 한다.
 success와 0보다 큰 rows를 확인한 뒤 --status로 실행 이력을 점검한다.
-현재 React 화면은 더미 모드이며 이 DB와 아직 연결되지 않았다.
+현재 React 화면은 FastAPI를 통해 이 DB의 최신 재고와 강남구 예측 결과를 표시한다.
 
 ## 과거 평균 기준 모델 백테스트
 
@@ -104,3 +104,38 @@ Set-Location 'D:\졸업프로젝트'
 - 시간대별·대여소별 재고 오차
 
 `--include-training-period` 옵션은 학습 종료일 이전 스냅숏도 포함하지만 데이터 누수가 생길 수 있으므로 공식 평가에는 사용하지 않는다.
+
+## 수집 연속성 점검
+
+최근 7일의 성공 슬롯을 5분 간격 기대값과 비교해 누락률, 가장 긴 누락 구간, 마지막 성공 후 경과 시간을 계산한다.
+
+```powershell
+Set-Location 'D:\졸업프로젝트'
+.\.venv\Scripts\python.exe -m backend.collection_health --days 7
+```
+
+기본 기준은 최근 성공 10분 이내, 수집률 95% 이상이다. 운영 자동 점검에서는 다음 스크립트를 사용할 수 있다.
+
+```powershell
+.\scripts\check_collection_health.ps1
+```
+
+로그인할 때 수집기를 자동으로 시작하고 중단 시 재시작하는 Windows 작업 스케줄러 등록 스크립트도 제공한다. 이 명령은 실제 PC 설정을 변경하므로 사용자가 직접 실행한다.
+
+```powershell
+.\scripts\install_collector_task.ps1
+Start-ScheduledTask -TaskName 'SeoulBikeInventoryCollector'
+```
+
+## LightGBM 기본 비교 모델
+
+머신러닝 의존성을 설치한 뒤 대여소·시간·요일·월·계절 주기·주말·공휴일·출퇴근 구분으로 향후 30분 대여량과 반납량을 각각 학습한다.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements-ml.txt
+.\.venv\Scripts\python.exe -m backend.train_lightgbm
+```
+
+학습 데이터는 평균 모델과 동일하게 약 8개월·2개월·2개월로 시간순 분리한다. 모델 파일은 `models/calendar-lightgbm-v1/`, 평가 결과는 `reports/calendar-lightgbm-v1/`에 저장된다. 모델 파일은 용량과 재생성 가능성을 고려해 Git에서 제외한다.
+
+첫 실험 결과 달력 변수만 사용한 LightGBM은 과거 평균보다 대여·반납 MAE가 각각 약 6.4% 높아 운영 API에 연결하지 않았다. 자세한 결과는 `reports/calendar-lightgbm-v1/SUMMARY.md`에 기록했다.

@@ -110,8 +110,16 @@ def baseline_predictions(as_of: datetime, path: Path | None = None) -> dict[str,
 
 
 def inventory_status(
-    path: Path | None = None, prediction_path: Path | None = None
+    path: Path | None = None,
+    prediction_path: Path | None = None,
+    *,
+    now: datetime | None = None,
 ) -> dict:
+    checked_at = now or datetime.now(timezone.utc)
+    checked_slot = checked_at.astimezone(timezone.utc).replace(
+        minute=(checked_at.minute // 5) * 5, second=0, microsecond=0
+    )
+    coverage_start = checked_slot - timedelta(minutes=5 * 287)
     with read_connection(path) as db:
         latest = db.execute(
             """
@@ -123,10 +131,21 @@ def inventory_status(
         recent = db.execute(
             "SELECT status, error, started_at FROM runs ORDER BY started_at DESC LIMIT 1"
         ).fetchone()
+        successful_slots_24h = db.execute(
+            "SELECT count(*) FROM slots WHERE slot BETWEEN ? AND ?",
+            (coverage_start.isoformat(), checked_slot.isoformat()),
+        ).fetchone()[0]
     if latest is None:
         raise LookupError("no_successful_collection")
     slot = datetime.fromisoformat(latest["slot"])
-    age_seconds = max(0, int((datetime.now(timezone.utc) - slot).total_seconds()))
+    age_seconds = max(0, int((checked_at - slot).total_seconds()))
+    expected_slots_24h = 288
+    coverage_24h = successful_slots_24h / expected_slots_24h
+    data_quality = (
+        "delayed" if age_seconds > 600
+        else "incomplete" if coverage_24h < 0.95
+        else "normal"
+    )
     result = {
         "runId": latest["id"],
         "slot": latest["slot"],
@@ -134,7 +153,10 @@ def inventory_status(
         "finishedAt": latest["finished_at"],
         "stationCount": latest["row_count"],
         "ageSeconds": age_seconds,
-        "dataQuality": "delayed" if age_seconds > 600 else "normal",
+        "dataQuality": data_quality,
+        "collectionCoverage24h": round(coverage_24h, 4),
+        "successfulSlots24h": successful_slots_24h,
+        "expectedSlots24h": expected_slots_24h,
         "lastRunStatus": recent["status"] if recent else None,
         "lastRunError": recent["error"] if recent else None,
     }

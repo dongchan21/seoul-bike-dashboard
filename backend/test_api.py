@@ -24,7 +24,10 @@ class ApiQueryTests(unittest.TestCase):
             SELECT o.*, r.slot FROM observations o JOIN runs r ON o.run_id=r.id
             WHERE o.run_id=(SELECT run_id FROM slots ORDER BY slot DESC LIMIT 1);
         """)
-        now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        current = datetime.now(timezone.utc)
+        now = current.replace(
+            minute=(current.minute // 5) * 5, second=0, microsecond=0
+        ).isoformat()
         db.execute("INSERT INTO runs VALUES(?,?,?,?,?,?,?)",
                    ("run-1", now, now, now, "success", 1, None))
         db.execute("INSERT INTO slots VALUES(?,?)", (now, "run-1"))
@@ -79,7 +82,11 @@ class ApiQueryTests(unittest.TestCase):
         self.assertEqual(row["currentBikes"], 7)
 
     def test_status_and_history(self):
-        self.assertEqual(inventory_status(self.path)["stationCount"], 1)
+        status = inventory_status(self.path)
+        self.assertEqual(status["stationCount"], 1)
+        self.assertEqual(status["dataQuality"], "incomplete")
+        self.assertEqual(status["successfulSlots24h"], 1)
+        self.assertEqual(status["expectedSlots24h"], 288)
         self.assertEqual(station_history("ST-1", 13, self.path)[0]["currentBikes"], 7)
 
     def test_latest_inventory_with_30_minute_baseline_prediction(self):

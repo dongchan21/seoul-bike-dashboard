@@ -1,0 +1,362 @@
+{
+  "modelVersion": "calendar-lightgbm-v1",
+  "sourceDatabase": "D:\\졸업프로젝트\\data\\gangnam\\gangnam.sqlite3",
+  "periods": {
+    "trainStart": "2025-10-09",
+    "trainEnd": "2026-06-08",
+    "validationStart": "2026-06-09",
+    "validationEnd": "2026-08-08",
+    "testStart": "2026-08-09",
+    "testEnd": "2026-10-08"
+  },
+  "sampleCounts": {
+    "train": 1926577,
+    "validation": 468308,
+    "test": 444009
+  },
+  "stationMappingSize": 205,
+  "originStepMinutes": 30,
+  "features": [
+    "stationId",
+    "weekday",
+    "originSlot",
+    "month",
+    "dayOfYearSin",
+    "dayOfYearCos",
+    "isWeekend",
+    "isHoliday",
+    "commuteType"
+  ],
+  "categoricalFeatures": [
+    "stationId",
+    "weekday",
+    "originSlot",
+    "month",
+    "isWeekend",
+    "isHoliday",
+    "commuteType"
+  ],
+  "targets": [
+    "rentals30m",
+    "returns30m"
+  ],
+  "bestIterations": {
+    "rentals": 105,
+    "returns": 132
+  },
+  "metrics": [
+    {
+      "split": "validation",
+      "model": "zero-flow",
+      "target": "rentals30m",
+      "samples": 468308,
+      "mae": 0.476266,
+      "rmse": 1.132119,
+      "wape": 1.0,
+      "actualMean": 0.476266,
+      "predictedMean": 0.0
+    },
+    {
+      "split": "validation",
+      "model": "zero-flow",
+      "target": "returns30m",
+      "samples": 468308,
+      "mae": 0.454075,
+      "rmse": 1.092798,
+      "wape": 1.0,
+      "actualMean": 0.454075,
+      "predictedMean": 0.0
+    },
+    {
+      "split": "validation",
+      "model": "zero-flow",
+      "target": "stockChange30m",
+      "samples": 468308,
+      "mae": 0.53534,
+      "rmse": 1.074119,
+      "wape": 1.0,
+      "actualMean": -0.022191,
+      "predictedMean": 0.0
+    },
+    {
+      "split": "validation",
+      "model": "seasonal-mean",
+      "target": "rentals30m",
+      "samples": 468308,
+      "mae": 0.485433,
+      "rmse": 0.851573,
+      "wape": 1.019248,
+      "actualMean": 0.476266,
+      "predictedMean": 0.389821
+    },
+    {
+      "split": "validation",
+      "model": "seasonal-mean",
+      "target": "returns30m",
+      "samples": 468308,
+      "mae": 0.45486,
+      "rmse": 0.803688,
+      "wape": 1.001728,
+      "actualMean": 0.454075,
+      "predictedMean": 0.37581
+    },
+    {
+      "split": "validation",
+      "model": "seasonal-mean",
+      "target": "stockChange30m",
+      "samples": 468308,
+      "mae": 0.577506,
+      "rmse": 0.989035,
+      "wape": 1.078765,
+      "actualMean": -0.022191,
+      "predictedMean": -0.014011
+    },
+    {
+      "split": "validation",
+      "model": "calendar-lightgbm-v1",
+      "target": "rentals30m",
+      "samples": 468308,
+      "mae": 0.526213,
+      "rmse": 0.868908,
+      "wape": 1.104872,
+      "actualMean": 0.476266,
+      "predictedMean": 0.447812
+    },
+    {
+      "split": "validation",
+      "model": "calendar-lightgbm-v1",
+      "target": "returns30m",
+      "samples": 468308,
+      "mae": 0.490186,
+      "rmse": 0.815523,
+      "wape": 1.079526,
+      "actualMean": 0.454075,
+      "predictedMean": 0.438435
+    },
+    {
+      "split": "validation",
+      "model": "calendar-lightgbm-v1",
+      "target": "stockChange30m",
+      "samples": 468308,
+      "mae": 0.559069,
+      "rmse": 1.018661,
+      "wape": 1.044325,
+      "actualMean": -0.022191,
+      "predictedMean": -0.009377
+    },
+    {
+      "split": "test",
+      "model": "zero-flow",
+      "target": "rentals30m",
+      "samples": 444009,
+      "mae": 0.550083,
+      "rmse": 1.338573,
+      "wape": 1.0,
+      "actualMean": 0.550083,
+      "predictedMean": 0.0
+    },
+    {
+      "split": "test",
+      "model": "zero-flow",
+      "target": "returns30m",
+      "samples": 444009,
+      "mae": 0.526122,
+      "rmse": 1.297093,
+      "wape": 1.0,
+      "actualMean": 0.526122,
+      "predictedMean": 0.0
+    },
+    {
+      "split": "test",
+      "model": "zero-flow",
+      "target": "stockChange30m",
+      "samples": 444009,
+      "mae": 0.575788,
+      "rmse": 1.15454,
+      "wape": 1.0,
+      "actualMean": -0.023961,
+      "predictedMean": 0.0
+    },
+    {
+      "split": "test",
+      "model": "seasonal-mean",
+      "target": "rentals30m",
+      "samples": 444009,
+      "mae": 0.533841,
+      "rmse": 1.001603,
+      "wape": 0.970473,
+      "actualMean": 0.550083,
+      "predictedMean": 0.387103
+    },
+    {
+      "split": "test",
+      "model": "seasonal-mean",
+      "target": "returns30m",
+      "samples": 444009,
+      "mae": 0.5012,
+      "rmse": 0.949966,
+      "wape": 0.952631,
+      "actualMean": 0.526122,
+      "predictedMean": 0.373535
+    },
+    {
+      "split": "test",
+      "model": "seasonal-mean",
+      "target": "stockChange30m",
+      "samples": 444009,
+      "mae": 0.623291,
+      "rmse": 1.081863,
+      "wape": 1.0825,
+      "actualMean": -0.023961,
+      "predictedMean": -0.013568
+    },
+    {
+      "split": "test",
+      "model": "calendar-lightgbm-v1",
+      "target": "rentals30m",
+      "samples": 444009,
+      "mae": 0.568274,
+      "rmse": 1.035488,
+      "wape": 1.03307,
+      "actualMean": 0.550083,
+      "predictedMean": 0.374921
+    },
+    {
+      "split": "test",
+      "model": "calendar-lightgbm-v1",
+      "target": "returns30m",
+      "samples": 444009,
+      "mae": 0.533283,
+      "rmse": 0.990372,
+      "wape": 1.013611,
+      "actualMean": 0.526122,
+      "predictedMean": 0.352414
+    },
+    {
+      "split": "test",
+      "model": "calendar-lightgbm-v1",
+      "target": "stockChange30m",
+      "samples": 444009,
+      "mae": 0.599064,
+      "rmse": 1.114658,
+      "wape": 1.040425,
+      "actualMean": -0.023961,
+      "predictedMean": -0.022507
+    }
+  ],
+  "featureImportance": [
+    {
+      "target": "rentals",
+      "feature": "stationId",
+      "gain": 3306062.004623,
+      "gainShare": 0.414766
+    },
+    {
+      "target": "rentals",
+      "feature": "originSlot",
+      "gain": 3067386.524124,
+      "gainShare": 0.384823
+    },
+    {
+      "target": "rentals",
+      "feature": "month",
+      "gain": 608976.234589,
+      "gainShare": 0.0764
+    },
+    {
+      "target": "rentals",
+      "feature": "dayOfYearCos",
+      "gain": 323112.835403,
+      "gainShare": 0.040537
+    },
+    {
+      "target": "rentals",
+      "feature": "isWeekend",
+      "gain": 234777.173203,
+      "gainShare": 0.029454
+    },
+    {
+      "target": "rentals",
+      "feature": "commuteType",
+      "gain": 176024.996536,
+      "gainShare": 0.022083
+    },
+    {
+      "target": "rentals",
+      "feature": "dayOfYearSin",
+      "gain": 130871.772018,
+      "gainShare": 0.016419
+    },
+    {
+      "target": "rentals",
+      "feature": "weekday",
+      "gain": 71416.664093,
+      "gainShare": 0.00896
+    },
+    {
+      "target": "rentals",
+      "feature": "isHoliday",
+      "gain": 52279.369858,
+      "gainShare": 0.006559
+    },
+    {
+      "target": "returns",
+      "feature": "stationId",
+      "gain": 4119832.169487,
+      "gainShare": 0.479745
+    },
+    {
+      "target": "returns",
+      "feature": "originSlot",
+      "gain": 2806831.217209,
+      "gainShare": 0.326849
+    },
+    {
+      "target": "returns",
+      "feature": "month",
+      "gain": 592176.872803,
+      "gainShare": 0.068958
+    },
+    {
+      "target": "returns",
+      "feature": "dayOfYearCos",
+      "gain": 307331.356491,
+      "gainShare": 0.035788
+    },
+    {
+      "target": "returns",
+      "feature": "commuteType",
+      "gain": 233389.274033,
+      "gainShare": 0.027178
+    },
+    {
+      "target": "returns",
+      "feature": "isWeekend",
+      "gain": 215341.982574,
+      "gainShare": 0.025076
+    },
+    {
+      "target": "returns",
+      "feature": "dayOfYearSin",
+      "gain": 155836.8638,
+      "gainShare": 0.018147
+    },
+    {
+      "target": "returns",
+      "feature": "weekday",
+      "gain": 92729.629745,
+      "gainShare": 0.010798
+    },
+    {
+      "target": "returns",
+      "feature": "isHoliday",
+      "gain": 64069.154633,
+      "gainShare": 0.007461
+    }
+  ],
+  "limitations": [
+    "This first ML model uses only features available at prediction time: station and calendar variables.",
+    "Current inventory is not a training feature because matching historical 5-minute inventory is unavailable.",
+    "Weather and recent live inventory changes are reserved for later comparison models."
+  ]
+}

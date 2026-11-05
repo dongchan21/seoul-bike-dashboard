@@ -1,4 +1,4 @@
-export type DataQuality = 'normal' | 'delayed'
+export type DataQuality = 'normal' | 'incomplete' | 'delayed'
 
 export interface InventoryStatus {
   runId: string
@@ -8,6 +8,9 @@ export interface InventoryStatus {
   stationCount: number
   ageSeconds: number
   dataQuality: DataQuality
+  collectionCoverage24h: number
+  successfulSlots24h: number
+  expectedSlots24h: number
   lastRunStatus: string | null
   lastRunError: string | null
   predictionModel: {
